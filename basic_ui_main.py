@@ -60,7 +60,7 @@ class PixelArtUI(QWidget):
         # Store loaded image path (process later)
         self.loaded_image_path = None
 
-    #ONLY PLACEHOLDERS--
+    #PLACEHOLDERS--
 
     def load_image(self):
         """UI only: load image and show it. No processing."""
@@ -76,7 +76,7 @@ class PixelArtUI(QWidget):
 
         self.loaded_image_path = file_name
 
-        # Display raw image
+        # Display orignal image
         pixmap = QPixmap(file_name)
         pixmap = pixmap.scaled(
             self.image_label.width(),
@@ -86,17 +86,13 @@ class PixelArtUI(QWidget):
         )
         self.image_label.setPixmap(pixmap)
 
-        # TODO: When algorithm teammate is ready,
-        # call their function to process the image.
+        #add algorithm when teammate is ready
 
     def slider_changed(self, value):
         """UI only: updates displayed number. No processing."""
         self.bits_label.setText(f"Bits: {value}")
 
-        # TODO: send slider value to algorithm teammate’s function
-        # Example:
-        # processed_pixmap = algorithm.process(self.loaded_image_path, value)
-        # self.image_label.setPixmap(processed_pixmap)
+        #send slider value to algorithm teammate function
 
 
 def main():
@@ -108,3 +104,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
