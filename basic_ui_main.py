@@ -33,11 +33,14 @@ class PixelArtUI(QWidget):
         self.load_button = QPushButton("Load Image")
         self.load_button.clicked.connect(self.load_image)
 
-        # Slider
+        # Horizontal Slider
         self.slider = QSlider(Qt.Horizontal)
         self.slider.setMinimum(1)
         self.slider.setMaximum(8)
         self.slider.setValue(4)
+        
+        # Comparison Slider
+        # andrew said he would do this part
 
         # Slider Label
         self.bits_label = QLabel("Bits: 4")
@@ -63,7 +66,6 @@ class PixelArtUI(QWidget):
     #PLACEHOLDERS--
 
     def load_image(self):
-        """UI only: load image and show it. No processing."""
         file_name, _ = QFileDialog.getOpenFileName(
             self,
             "Open Image",
