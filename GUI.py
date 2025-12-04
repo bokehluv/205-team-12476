@@ -11,7 +11,7 @@ from PySide6.QtWidgets import QApplication, QWidget, QLabel, QVBoxLayout, QPushB
 # All other Qt modules rely on this Qt Core
 # Qt namespace, used here for GlobalColor enum
 # see http://bit.ly/3l6enCh
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
 
 from __feature__ import snake_case, true_property # type: ignore
 
@@ -26,27 +26,47 @@ my_qt_app = QApplication([])
 class task3_window(QWidget):
     def __init__(self):
         super().__init__()
-        vbox = QVBoxLayout()
+        self.window_title = "Image Display App"
+        self.resize(800, 600)
 
-        btn = QPushButton('Push me!')
-        btn1 = QPushButton('DONT PUSH ME')
-        self.my_lbl = QLabel('Buttons!')
-        btn.clicked.connect(self.on_click1)
-        btn1.clicked.connect(self.on_click2)
+        # Create main layout
+        layout = QVBoxLayout()
 
-        vbox.add_widget(btn)
-        vbox.add_widget(btn1)
-        vbox.add_widget(self.my_lbl)
-        self.window_title = 'Mikey Huntzinger'
-        self.set_layout(vbox)
-        self.resize(300,300)
-        self.palette = Qt.darkMagenta
+        # Create a label for displaying image
+        self.image_label = QLabel()
+        self.image_label.alignment = Qt.AlignmentFlag.AlignCenter
+        self.image_label.text = "No image loaded"
+        self.image_label.set_style_sheet("border: 2px solid gray; background-color: lightgray;")
+        # self.image_label.set_minimum_size(400, 400)
+
+        # Create upload button
+        self.upload_button = QPushButton("Upload Image")
+        self.upload_button.clicked.connect(self.file_upload_on_click)
+
+        # Create another button
+        self.my_button = QPushButton("Press Me")
+        self.my_button.clicked.connect(self.on_click2)
+
+        # Create label for messages
+        self.my_lbl = QLabel("Welcome!")
+        self.my_lbl.alignment = Qt.AlignmentFlag.AlignCenter
+
+        # Add widgets to layout
+        layout.add_widget(self.upload_button)
+        layout.add_widget(self.image_label)
+        layout.add_widget(self.my_button)
+        layout.add_widget(self.my_lbl)
+
+        self.set_layout(layout)
     
     def on_click1(self):
         self.my_lbl.text = "Yay Thank you!"
     
     def on_click2(self):
         self.my_lbl.text = "OH GOD YOU PUSHED ME IT HURTS"
+        
+    def file_upload_on_click(self):
+        self.my_lbl.text = "File uploaded"
 
 my_window = task3_window()
 my_window.show()
