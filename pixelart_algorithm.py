@@ -1,4 +1,5 @@
 import sys
+import time
 from PySide6.QtCore import Qt, Slot, QSize
 from PySide6.QtGui import QPixmap, QImage
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QLabel, 
@@ -33,26 +34,17 @@ def color_pal_reduce(image, target_colors):
 #param image: Pillow image object
 #param target_size: The number of bits per color
 def color_bit_reduce(image, target_bits):
-    width, height = image.size
-    
     bitmask = 0
     bitset = 128    # 0x80
     for b in range(target_bits):
         bitmask = bitmask | bitset
         bitset = bitset >> 1
     
-    image = image.convert("RGB")
-    pixels = image.load()
+    # Optimization: Use a lookup table instead of per-pixel iteration
+    lookup_table = [i & bitmask for i in range(256)]
     
-    for y in range(height):
-        for x in range(width):
-            r, g, b = pixels[x, y]
-            r = r & bitmask
-            g = g & bitmask
-            b = b & bitmask
-            pixels[x, y] = r, g, b
-    
-    return image
+    # Ensure RGB and apply table (requires 256 values per channel)
+    return image.convert("RGB").point(lookup_table * 3)
 
 
 class PixelArtCreator(QMainWindow):
@@ -149,6 +141,11 @@ class PixelArtCreator(QMainWindow):
     
     @Slot()
     def update_preview(self):
+        if self.original_image is None:
+            return
+
+        start_time = time.time()
+
         # Get slider values
         pixel_size = self.pixelation_slider.value
         palette_colors = self.palette_slider.value
@@ -160,13 +157,22 @@ class PixelArtCreator(QMainWindow):
         self.bitdepth_value_label.text = str(bit_depth)
         
         # Apply effects
+        t = time.time()
         processed_image = pixelate(self.original_image, pixel_size)
+        print(f"Pixelate: {time.time() - t:.4f}s")
+
+        t = time.time()
         processed_image = color_pal_reduce(processed_image, palette_colors)
+        print(f"Palette Reduce: {time.time() - t:.4f}s")
+
+        t = time.time()
         processed_image = color_bit_reduce(processed_image, bit_depth)
+        print(f"Bit Reduce: {time.time() - t:.4f}s")
         
         self.current_image = processed_image
         
         # Convert PIL image to bytes
+        t = time.time()
         buffer = BytesIO()
         processed_image.save(buffer, format='PNG')
         buffer.seek(0)
@@ -179,6 +185,10 @@ class PixelArtCreator(QMainWindow):
         # Display image (scale to fit label)
         scaled_pixmap = pixmap.scaled(self.image_label.size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.image_label.pixmap = scaled_pixmap
+        print(f"Display Update: {time.time() - t:.4f}s")
+
+        print(f"Total Time: {time.time() - start_time:.4f}s")
+        print("-" * 30)
     
     @Slot()
     def save_image(self):
