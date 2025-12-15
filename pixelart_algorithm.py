@@ -47,97 +47,170 @@ def color_bit_reduce(image, target_bits):
     return image.convert("RGB").point(lookup_table * 3)
 
 
+# --- Constants ---
+STYLESHEET = """
+    QMainWindow {
+        background-color: #2b2b2b;
+    }
+    QLabel {
+        color: #ffffff;
+        font-size: 14px;
+    }
+    QGroupBox {
+        color: #ffffff;
+        font-weight: bold;
+        border: 1px solid #555;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+    QGroupBox::title {
+        subcontrol-origin: margin;
+        left: 10px;
+        padding: 0 3px 0 3px;
+    }
+    QPushButton {
+        background-color: #0d6efd;
+        color: white;
+        border-radius: 5px;
+        padding: 8px;
+        font-weight: bold;
+    }
+    QPushButton:hover {
+        background-color: #0b5ed7;
+    }
+    QPushButton:disabled {
+        background-color: #555;
+        color: #aaa;
+    }
+    QSlider::groove:horizontal {
+        border: 1px solid #999999;
+        height: 8px;
+        background: #444;
+        margin: 2px 0;
+        border-radius: 4px;
+    }
+    QSlider::handle:horizontal {
+        background: #0d6efd;
+        border: 1px solid #0d6efd;
+        width: 18px;
+        height: 18px;
+        margin: -7px 0;
+        border-radius: 9px;
+    }
+"""
+
 class PixelArtCreator(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.setup_window()
+        self.setup_ui()
+
+    def setup_window(self):
+        """Sets up the main window properties."""
         self.title = "Pixel Art Creator"
         self.set_window_title(self.title)
-        self.resize(800, 600)
+        self.resize(1000, 700)
+        self.style_sheet = STYLESHEET
         self.original_image = None
         self.current_image = None
-        
-        # Create central widget and main layout
+
+    def setup_ui(self):
+        """Initializes the user interface layout."""
         central_widget = QWidget()
         self.set_central_widget(central_widget)
-        main_layout = QVBoxLayout()
+        
+        # Main layout is horizontal: [Controls] | [Image]
+        main_layout = QHBoxLayout()
         central_widget.set_layout(main_layout)
 
-        # Load button
+        # Add the two main panels
+        main_layout.add_widget(self.create_left_panel())
+        main_layout.add_widget(self.create_right_panel())
+
+    def create_left_panel(self):
+        """Creates the left sidebar with all controls."""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        panel.set_layout(layout)
+        panel.maximum_width = 300
+        
+        # Title
+        title_label = QLabel("Pixel Art Creator")
+        title_label.style_sheet = "font-size: 24px; font-weight: bold; color: #0d6efd; margin-bottom: 10px;"
+        title_label.alignment = Qt.AlignCenter
+        layout.add_widget(title_label)
+
+        # Load Button
         self.load_button = QPushButton("Load Image")
         self.load_button.clicked.connect(self.load_image)
-        main_layout.add_widget(self.load_button)
+        layout.add_widget(self.load_button)
 
-        # Image display
+        # Settings Group
+        settings_group = QGroupBox("Settings")
+        settings_layout = QVBoxLayout()
+        settings_group.set_layout(settings_layout)
+
+        # Add sliders to settings group
+        self.create_slider(settings_layout, "Pixel Size:", 8, 256, 128, "pixelation")
+        self.create_slider(settings_layout, "Color Palette:", 2, 256, 128, "palette")
+        self.create_slider(settings_layout, "Bit Depth:", 1, 8, 8, "bitdepth")
+        
+        layout.add_widget(settings_group)
+        layout.add_stretch() # Push everything up
+
+        # Save Button
+        self.save_button = QPushButton("Save Pixel Art")
+        self.save_button.clicked.connect(self.save_image)
+        self.save_button.enabled = False
+        layout.add_widget(self.save_button)
+
+        return panel
+
+    def create_right_panel(self):
+        """Creates the right panel for image display."""
+        panel = QWidget()
+        layout = QVBoxLayout()
+        panel.set_layout(layout)
+
         self.image_label = QLabel()
         self.image_label.alignment = Qt.AlignCenter
         self.image_label.text = "No image loaded"
         self.image_label.minimum_size = QSize(400, 400)
-        self.image_label.style_sheet = "QLabel { background-color: #f0f0f0; border: 2px solid #ccc; }"
-        main_layout.add_widget(self.image_label)
-
-        # Controls group
-        controls_group = QGroupBox("Pixel Art Controls")
-        controls_layout = QVBoxLayout()
-        controls_group.set_layout(controls_layout)
-
-        # Pixelation slider
-        pixelation_layout = QHBoxLayout()
-        pixelation_label = QLabel("Pixel Size:")
-        self.pixelation_slider = QSlider(Qt.Horizontal)
-        self.pixelation_slider.minimum = 8
-        self.pixelation_slider.maximum = 256
-        self.pixelation_slider.value = 128
-        self.pixelation_slider.valueChanged.connect(self.update_preview)
-        self.pixelation_value_label = QLabel("128")
-        pixelation_layout.add_widget(pixelation_label)
-        pixelation_layout.add_widget(self.pixelation_slider)
-        pixelation_layout.add_widget(self.pixelation_value_label)
-        controls_layout.add_layout(pixelation_layout)
-
-        # Color palette slider
-        palette_layout = QHBoxLayout()
-        palette_label = QLabel("Color Palette:")
-        self.palette_slider = QSlider(Qt.Horizontal)
-        self.palette_slider.minimum = 2
-        self.palette_slider.maximum = 256
-        self.palette_slider.value = 128
-        self.palette_slider.valueChanged.connect(self.update_preview)
-        self.palette_value_label = QLabel("128")
-        palette_layout.add_widget(palette_label)
-        palette_layout.add_widget(self.palette_slider)
-        palette_layout.add_widget(self.palette_value_label)
-        controls_layout.add_layout(palette_layout)
-
-        # Color bit depth slider
-        bitdepth_layout = QHBoxLayout()
-        bitdepth_label = QLabel("Bit Depth:")
-        self.bitdepth_slider = QSlider(Qt.Horizontal)
-        self.bitdepth_slider.minimum = 1
-        self.bitdepth_slider.maximum = 8
-        self.bitdepth_slider.value = 8
-        self.bitdepth_slider.valueChanged.connect(self.update_preview)
-        self.bitdepth_value_label = QLabel("8")
-        bitdepth_layout.add_widget(bitdepth_label)
-        bitdepth_layout.add_widget(self.bitdepth_slider)
-        bitdepth_layout.add_widget(self.bitdepth_value_label)
-        controls_layout.add_layout(bitdepth_layout)
-
-        main_layout.add_widget(controls_group)
+        self.image_label.style_sheet = "QLabel { background-color: #1e1e1e; border: 2px dashed #444; border-radius: 10px; color: #888; }"
         
-        # Save button
-        self.save_button = QPushButton("Save Pixel Art")
-        self.save_button.clicked.connect(self.save_image)
-        self.save_button.enabled = False
-        main_layout.add_widget(self.save_button)
+        layout.add_widget(self.image_label)
+        return panel
+
+    def create_slider(self, parent_layout, label_text, min_val, max_val, default_val, name_prefix):
+        """Helper to create a slider with label and value display."""
+        layout = QHBoxLayout()
+        
+        label = QLabel(label_text)
+        slider = QSlider(Qt.Horizontal)
+        slider.minimum = min_val
+        slider.maximum = max_val
+        slider.value = default_val
+        slider.valueChanged.connect(self.update_preview)
+        
+        value_label = QLabel(str(default_val))
+        value_label.alignment = Qt.AlignRight
+
+        # Store references so we can access them later
+        setattr(self, f"{name_prefix}_slider", slider)
+        setattr(self, f"{name_prefix}_value_label", value_label)
+
+        layout.add_widget(label)
+        layout.add_widget(slider)
+        layout.add_widget(value_label)
+        parent_layout.add_layout(layout)
 
     @Slot()
     def load_image(self):
-        # Ask user for file
         file_name, _ = QFileDialog.get_open_file_name(self, "Open Image", "", "Image Files (*.png *.jpg *.jpeg *.bmp)")
-        
-        self.original_image = Image.open(file_name).convert("RGB")
-        self.save_button.enabled = True
-        self.update_preview()
+        if file_name:
+            self.original_image = Image.open(file_name).convert("RGB")
+            self.save_button.enabled = True
+            self.update_preview()
     
     @Slot()
     def update_preview(self):
@@ -146,12 +219,12 @@ class PixelArtCreator(QMainWindow):
 
         start_time = time.time()
 
-        # Get slider values
+        # Get values from sliders
         pixel_size = self.pixelation_slider.value
         palette_colors = self.palette_slider.value
         bit_depth = self.bitdepth_slider.value
         
-        # Update value labels
+        # Update labels
         self.pixelation_value_label.text = str(pixel_size)
         self.palette_value_label.text = str(palette_colors)
         self.bitdepth_value_label.text = str(bit_depth)
@@ -159,48 +232,45 @@ class PixelArtCreator(QMainWindow):
         # Apply effects
         t = time.time()
         processed_image = pixelate(self.original_image, pixel_size)
-        print(f"Pixelate: {time.time() - t:.4f}s")
+        # print(f"Pixelate: {time.time() - t:.4f}s")
 
         t = time.time()
         processed_image = color_pal_reduce(processed_image, palette_colors)
-        print(f"Palette Reduce: {time.time() - t:.4f}s")
+        # print(f"Palette Reduce: {time.time() - t:.4f}s")
 
         t = time.time()
         processed_image = color_bit_reduce(processed_image, bit_depth)
-        print(f"Bit Reduce: {time.time() - t:.4f}s")
+        # print(f"Bit Reduce: {time.time() - t:.4f}s")
         
         self.current_image = processed_image
         
-        # Convert PIL image to bytes
-        t = time.time()
+        # Display image
+        self.display_image(processed_image)
+
+        # print(f"Total Time: {time.time() - start_time:.4f}s")
+
+    def display_image(self, image):
+        """Converts PIL image to QPixmap and displays it."""
         buffer = BytesIO()
-        processed_image.save(buffer, format='PNG')
+        image.save(buffer, format='PNG')
         buffer.seek(0)
         
-        # Load into QPixmap
         qimage = QImage()
         qimage.load_from_data(buffer.read())
         pixmap = QPixmap.from_image(qimage)
 
-        # Display image (scale to fit label)
         scaled_pixmap = pixmap.scaled(self.image_label.size, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         self.image_label.pixmap = scaled_pixmap
-        print(f"Display Update: {time.time() - t:.4f}s")
-
-        print(f"Total Time: {time.time() - start_time:.4f}s")
-        print("-" * 30)
     
     @Slot()
     def save_image(self):
-        # Allow user to save the result
         file_name, _ = QFileDialog.get_save_file_name(self, "Save Pixel Art", "", "PNG Files (*.png);;JPEG Files (*.jpg)")
-        self.current_image.save(file_name)
+        if file_name:
+            self.current_image.save(file_name)
 
 
-# Create application
-my_app = QApplication([])
-# Create window	
-window = PixelArtCreator()
-window.show()
-# Run Qt program
-sys.exit(my_app.exec())
+if __name__ == "__main__":
+    app = QApplication([])
+    window = PixelArtCreator()
+    window.show()
+    sys.exit(app.exec())
