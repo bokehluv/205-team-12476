@@ -542,6 +542,6 @@ class PixelArtCreator(QMainWindow):
 if __name__ == "__main__":
     my_app = QApplication(sys.argv)
     window = PixelArtCreator()
-    window.style_sheet = "background-color: #f9f6f7;"
+    window.style_sheet = "background-color: #8d749d;"
     window.show()
     sys.exit(my_app.exec())
